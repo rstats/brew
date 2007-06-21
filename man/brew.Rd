@@ -6,7 +6,7 @@
   Java Server Pages, Ruby's erb module, and Python's psp module.
 }
 \usage{
-brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE)
+brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tplParser=NULL,...)
 }
 \arguments{
   \item{file}{A connection, or a character string naming the file
@@ -21,6 +21,11 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE)
     nested \code{brew} calls.}
   \item{run}{Logical to determine if \code{brew} should evaluate the input (\code{run=TRUE}) or 
     just parse it (\code{run=FALSE}). Useful for debugging.}
+  \item{tplParser}{a function to parse the text between <\%\% and \%\%> and return the result as
+    a character vector of length 1. The template text is passed to the function as a variable
+    length character vector in the first argument position. Any additional arguments are passed
+	via ... . The template parser must return a character vector of length 1.}
+  \item{...}{Additional arguments passed to tplParser if not NULL.}
 }
 \details{
 	The following template contains syntax to exercise all \code{brew} functionality:
@@ -71,5 +76,8 @@ rm(iris)
 
 ## The example from the Details section
 brew(system.file("featurefull.brew",package="brew"),envir=new.env())
+
+tParse <- function(text,extra='arg') paste('Got this: <',text,'>\n',sep='',collapse='')
+brew(system.file("featurefull.brew",package="brew"),envir=new.env(),tplParser=tParse,extra='stuff')
 }
 \keyword{utilities}

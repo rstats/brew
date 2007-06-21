@@ -1,7 +1,7 @@
 Package: brew
 Type: Package
 Title: Templating Framework for Report Generation
-Version: 0.1-1
+Version: 0.1-2
 Date: 2007-04-16
 Author: Jeffrey Horner
 Maintainer: Jeffrey Horner <jeff.horner@vanderbilt.edu>

@@ -24,7 +24,7 @@ BRCATCODE <- 4
 BRTEMPLATE <- 5
 
 `brew` <-
-function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE){
+function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tplParser=NULL,...){
 
 	# Error check input
 	closeIcon <- FALSE
@@ -56,7 +56,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE){
 
 	newline <- FALSE
 	state <- BRTEXT
-	buf <- code <- character()
+	buf <- code <- tpl <- character()
 	line <- ''
 	
 	while(TRUE){
@@ -82,9 +82,13 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE){
 				state <- BRCOMMENT
 				delim <- "<%#"
 			} else if (regexpr('<%%',line,perl=TRUE) > 0){
-				# Template generator, strip a %
+				# Template generator, strip a % unless tplParser != NULL
+				# so just take off the whole <%% stuff.
 				spl <- strsplit(line,'<%%',fixed=TRUE)[[1]]
-				buf[length(buf)+1] <- paste(spl[1],'<%',sep='')
+				if (!is.null(tplParser))
+					buf[length(buf)+1] <- spl[1]
+				else
+					buf[length(buf)+1] <- paste(spl[1],'<%',sep='')
 				line <- paste(spl[-1],collapse='<%%')
 				state <- BRTEMPLATE
 				next
@@ -106,7 +110,13 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE){
 		} else {
 			if (regexpr("%%>",line,perl=TRUE) > 0){
 				spl <- strsplit(line,"%%>",fixed=TRUE)[[1]]
-				buf[length(buf)+1] <- paste(spl[1],'%>',sep='')
+				if (!is.null(tplParser)){
+					tpl[length(tpl)+1] <- spl[1]
+					buf[length(buf)+1] <- tplParser(tpl,...)
+					tpl <- character()
+				} else {
+					buf[length(buf)+1] <- paste(spl[1],'%>',sep='')
+				}
 				line <- paste(spl[-1],collapse='%%>')
 				state <- BRTEXT
 				next
@@ -132,7 +142,10 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE){
 				buf <- character()
 				state <- BRTEXT
 			} else {
-				buf[length(buf)+1] <- line
+				if (state == BRTEMPLATE && !is.null(tplParser))
+					tpl[length(tpl)+1] <- line
+				else
+					buf[length(buf)+1] <- line
 				line <- ''
 			}
 		}
