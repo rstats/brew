@@ -6,7 +6,7 @@
   Java Server Pages, Ruby's erb module, and Python's psp module.
 }
 \usage{
-brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tplParser=NULL,...)
+brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL,...)
 }
 \arguments{
   \item{file}{A connection, or a character string naming the file
@@ -21,6 +21,7 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tplPar
     nested \code{brew} calls.}
   \item{run}{Logical to determine if \code{brew} should evaluate the input (\code{run=TRUE}) or 
     just parse it (\code{run=FALSE}). Useful for debugging.}
+  \item{parseCode}{Logical. only relevant when run=FALSE. When TRUE the brewed code is parsed and then silently returned. When FALSE, the brewed code is returned as a character vector.}
   \item{tplParser}{a function to parse the text between <\%\% and \%\%> and return the result as
     a character vector of length 1. The template text is passed to the function as a variable
     length character vector in the first argument position. Any additional arguments are passed
@@ -61,7 +62,10 @@ foo is still bar.
 }
 \value{
 	When \code{run=TRUE}, the result of the last evaluated expression after brewing the input.
-    When \code{run=FALSE}, the parsed expressions after brewing the input.	
+
+    When \code{run=FALSE} and \code{parseCode=TRUE}, the parsed expressions after brewing the input.	
+
+    When \code{run=FALSE} and \code{parseCode=FALSE}, a character vector containing the R expressions after brewing the input.	
 }
 \author{ Jeffrey Horner <jeff.horner@vanderbilt.edu> }
 \seealso{ \code{\link{Sweave}} for the original report generator. }
