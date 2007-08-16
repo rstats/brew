@@ -58,6 +58,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 	state <- BRTEXT
 	buf <- code <- tpl <- character()
 	line <- ''
+	codelen <- 0
 	
 	while(TRUE){
 		if (!nchar(line)){
@@ -68,9 +69,13 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 		} else newline <- FALSE
 		if (state == BRTEXT){
 			if (newline && regexpr("^%",line,perl=TRUE) > 0){
-				code[length(code)+1] <- paste("cat(",deparse(paste(buf,collapse='')),")")
+				for (i in buf){
+					code[codelen+1] <- paste('cat(',deparse(i),')')
+					codelen <- codelen + 1
+				}
 				spl <- strsplit(line,"^%",perl=TRUE)[[1]]
-				code[length(code)+1] <- spl[2]
+				code[codelen+1] <- spl[2]
+				codelen <- codelen + 1
 				line <- ''
 				buf <- character()
 				next
@@ -101,7 +106,12 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 				if (nchar(spl[1])) buf[length(buf)+1] <- spl[1]
 				line <- paste(spl[-1],collapse=delim)
 
-				if (length(buf)) code[length(code)+1] <- paste("cat(",deparse(paste(buf,collapse='')),")")
+				if (length(buf)) {
+					for (i in buf){
+						code[codelen+1] <- paste('cat(',deparse(i),')')
+						codelen <- codelen + 1
+					}
+				}
 				buf  <- character()
 			} else {
 				buf[length(buf)+1] <- line
@@ -135,9 +145,11 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 					buf[length(buf)+1] <- spl[1]
 				}
 				if (state == BRCODE){
-					code[length(code)+1] <- paste(buf,collapse='')
+					code[codelen+1] <- paste(buf,collapse='')
+					codelen <- codelen + 1
 				} else if (state == BRCATCODE){
-					code[length(code)+1] <- paste("cat(",paste(buf,collapse=''),")")
+					code[codelen+1] <- paste("cat(",paste(buf,collapse=''),")")
+					codelen <- codelen + 1
 				}
 				buf <- character()
 				state <- BRTEXT
@@ -152,7 +164,8 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 	}
 	if (state == BRTEXT){
 		if (length(buf)) {
-			code[length(code)+1] <- paste("cat(",deparse(paste(buf,collapse='')),")")
+			code[codelen+1] <- paste("cat(",deparse(paste(buf,collapse='')),")")
+			codelen <- codelen + 1
 			# cat(buf,sep='')
 		}
 	} else {
