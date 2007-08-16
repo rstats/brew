@@ -24,7 +24,7 @@ BRCATCODE <- 4
 BRTEMPLATE <- 5
 
 `brew` <-
-function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tplParser=NULL,...){
+function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL,...){
 
 	# Error check input
 	closeIcon <- FALSE
@@ -57,8 +57,8 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 	newline <- FALSE
 	state <- BRTEXT
 	buf <- code <- tpl <- character()
+	buflen <- codelen <- 0
 	line <- ''
-	codelen <- 0
 	
 	while(TRUE){
 		if (!nchar(line)){
@@ -68,18 +68,22 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 			newline <- TRUE
 		} else newline <- FALSE
 		if (state == BRTEXT){
-			if (newline && regexpr("^%",line,perl=TRUE) > 0){
+
+			# One-liner
+			if (newline && ('%' == substr(line,1,1))){
+				# build cats
 				for (i in buf){
-					code[codelen+1] <- paste('cat(',deparse(i),')')
+					code[codelen+1] <- paste('cat(',deparse(i),')',sep='')
 					codelen <- codelen + 1
 				}
 				spl <- strsplit(line,"^%",perl=TRUE)[[1]]
-				code[codelen+1] <- spl[2]
+				code[codelen+1] <- substr(line,2,nchar(line))
 				codelen <- codelen + 1
 				line <- ''
-				buf <- character()
+				buf <- character(); buflen <- 0
 				next
 			}
+
 			if (regexpr("<%=",line,perl=TRUE) > 0){
 				state <- BRCATCODE
 				delim <- "<%="
@@ -90,10 +94,13 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 				# Template generator, strip a % unless tplParser != NULL
 				# so just take off the whole <%% stuff.
 				spl <- strsplit(line,'<%%',fixed=TRUE)[[1]]
-				if (!is.null(tplParser))
-					buf[length(buf)+1] <- spl[1]
-				else
-					buf[length(buf)+1] <- paste(spl[1],'<%',sep='')
+				if (!is.null(tplParser)){
+					buf[buflen+1] <- spl[1]
+					buflen <- buflen + 1
+				} else {
+					buf[buflen+1] <- paste(spl[1],'<%',sep='')
+					buflen <- buflen + 1
+				}
 				line <- paste(spl[-1],collapse='<%%')
 				state <- BRTEMPLATE
 				next
@@ -103,18 +110,23 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 			}
 			if (state != BRTEXT){ # something changed
 				spl <- strsplit(line,delim,fixed=TRUE)[[1]]
-				if (nchar(spl[1])) buf[length(buf)+1] <- spl[1]
+				if (nchar(spl[1])) {
+					buf[buflen+1] <- spl[1]
+					buflen <- buflen + 1
+				}
 				line <- paste(spl[-1],collapse=delim)
 
-				if (length(buf)) {
+				if (buflen) {
+					# build cats
 					for (i in buf){
-						code[codelen+1] <- paste('cat(',deparse(i),')')
+						code[codelen+1] <- paste('cat(',deparse(i),')',sep='')
 						codelen <- codelen + 1
 					}
 				}
-				buf  <- character()
+				buf <- character(); buflen <- 0
 			} else {
-				buf[length(buf)+1] <- line
+				buf[buflen+1] <- line
+				buflen <- buflen + 1
 				line <- ''
 			}
 		} else {
@@ -122,10 +134,22 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 				spl <- strsplit(line,"%%>",fixed=TRUE)[[1]]
 				if (!is.null(tplParser)){
 					tpl[length(tpl)+1] <- spl[1]
-					buf[length(buf)+1] <- tplParser(tpl,...)
+					# call template parser
+					tplBuf <- strsplit(tplParser(tpl,...),'\n',fixed=TRUE)[[1]]
+					tplBufLen <- length(tplBuf)
+					# add back newline on all but last tplBuf element
+					if (tplBufLen > 1){
+						for( i in 1:(tplBufLen-1)){
+							buf[buflen+1] <- paste(tplBuf[i],'\n',sep='')
+							buflen <- buflen + 1
+						}
+					}
+					buf[buflen+1] <- tplBuf[tplBufLen]
+					buflen <- buflen + 1
 					tpl <- character()
 				} else {
-					buf[length(buf)+1] <- paste(spl[1],'%>',sep='')
+					buf[buflen+1] <- paste(spl[1],'%>',sep='')
+					buflen <- buflen + 1
 				}
 				line <- paste(spl[-1],collapse='%%>')
 				state <- BRTEXT
@@ -142,31 +166,36 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 						line <- substr(line,1,nchar(line)-1)
 						spl[1] <- substr(spl[1],1,n-1)
 					}
-					buf[length(buf)+1] <- spl[1]
+					buf[buflen+1] <- spl[1]
+					buflen <- buflen + 1
 				}
 				if (state == BRCODE){
 					code[codelen+1] <- paste(buf,collapse='')
 					codelen <- codelen + 1
 				} else if (state == BRCATCODE){
-					code[codelen+1] <- paste("cat(",paste(buf,collapse=''),")")
+					code[codelen+1] <- paste('cat(',paste(buf,collapse=''),')',sep='')
 					codelen <- codelen + 1
 				}
-				buf <- character()
+				buf <- character(); buflen <- 0
 				state <- BRTEXT
 			} else {
 				if (state == BRTEMPLATE && !is.null(tplParser))
 					tpl[length(tpl)+1] <- line
-				else
-					buf[length(buf)+1] <- line
+				else {
+					buf[buflen+1] <- line
+					buflen <- buflen + 1
+				}
 				line <- ''
 			}
 		}
 	}
 	if (state == BRTEXT){
-		if (length(buf)) {
-			code[codelen+1] <- paste("cat(",deparse(paste(buf,collapse='')),")")
-			codelen <- codelen + 1
-			# cat(buf,sep='')
+		if (buflen) {
+			# build cats
+			for (i in buf){
+				code[codelen+1] <- paste('cat(',deparse(i),')',sep='')
+				codelen <- codelen + 1
+			}
 		}
 	} else {
 		warning("Unclosed tag")
@@ -188,7 +217,9 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,tp
 		if (sunk && unclass(output) != 1) sink()
 		if (exists('.brew.output',where=envir)) rm('.brew.output',pos=envir)
 		invisible(ret)
-	} else {
+	} else if (parseCode){
 		invisible(parse(text=code))
+	} else {
+		invisible(code)
 	}
 }
