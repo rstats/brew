@@ -23,6 +23,37 @@ BRCOMMENT <- 3
 BRCATCODE <- 4
 BRTEMPLATE <- 5
 
+# text and code should be found by lexical scoping rules
+`.brew.cached` <- function(output=stdout(),envir=parent.frame()){
+	# Only sink if caller passed an argument
+	sunk <- FALSE
+	if (!is.null(match.call()$output)) {
+		sunk <- TRUE
+		sink(output)
+	}
+
+	# Set up text output closure
+	brew.cat <- function(from,to) cat(text[from:to],sep='',collapse='')
+	.prev.brew.cat <- NULL
+	if (exists('.brew.cat',envir=envir)){
+		.prev.brew.cat <- get('.brew.cat',pos=envir)
+	}
+	assign('.brew.cat',brew.cat, envir=envir)
+
+	ret <- try(eval(code,envir=envir))
+
+	# sink() will warn if trying to end the real stdout diversion
+	if (sunk && unclass(output) != 1) sink()
+
+	if(!is.null(.prev.brew.cat)){
+		assign('.brew.cat',.prev.brew.cat,envir=envir)
+	} else {
+		rm('.brew.cat',envir=envir)
+	}
+
+	invisible(ret)
+}
+
 `brew` <-
 function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL,...){
 
@@ -227,7 +258,12 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 
 		invisible(ret)
 	} else if (parseCode){
-		invisible(list(text=text,code=parse(text=code)))
+		brew.env <- new.env(parent=globalenv())
+		assign('text',text,brew.env)
+		assign('code',parse(text=code),brew.env)
+		brew.cached <- .brew.cached
+		environment(brew.cached) <- brew.env
+		invisible(brew.cached)
 	} else {
 		invisible(list(text=text,code=code))
 	}

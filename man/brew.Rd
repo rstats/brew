@@ -22,13 +22,26 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseC
   \item{run}{Logical to determine if \code{brew} should evaluate the input (\code{run=TRUE}) or 
     just parse it (\code{run=FALSE}). Useful for debugging.}
   \item{parseCode}{Logical. only relevant when run=FALSE. When TRUE the brewed code is parsed and then silently returned. When FALSE, the brewed code is returned as a character vector.}
-  \item{tplParser}{a function to parse the text between <\%\% and \%\%> and return the result as
+  \item{tplParser}{a function to parse the text between '<\%\%' and '\%\%>' and return the result as
     a character vector. The template text is passed to the function as a variable
     length character vector in the first argument position. Any additional arguments are passed
 	via ... .}
   \item{...}{Additional arguments passed to tplParser if not NULL.}
 }
 \details{
+	brew syntax is quite simple and there are very few delimiters to learn:
+
+	\itemize{
+	\item{1.}{All text that falls outside of the delimiters is printed as-is.}
+	\item{2.}{R expressions between the '<\%' and '\%>' delimiters are executed in-place.}
+    \item{3.}{The value of the R expression between the '<\%=' and '\%>' delimiters is printed.}
+	\item{4.}{All text between the '<\%\#' and '\%>' delimiters is thrown away. Use it as a comment.}
+	\item{5.}{If you place a '-' just before the '\%>' delimiter, and it's placed at the end of a line, then the newline is omitted from the output.}
+	\item{6.}{If '\%' is the first character on the line, then the rest of the line is presumed
+       to be R expressions and are evaluated in place.}
+	}
+
+    
 	The following template contains syntax to exercise all \code{brew} functionality:
 
 \preformatted{
@@ -58,9 +71,19 @@ How about generating a template from a template?
 foo is still bar.
 --------------
 }
+
+	Also, for power users, there's one more thing:
+
+	\itemize{
+	\item{7.}{Text between the '<\%\%' and '\%\%>' delimiters is treated as a brew template and
+      is printed as-is, but the delimiters are changed to '<\%' and '\%>'. This happens when tplParser=NULL. But if tplParser is a valid function, then the text is passed to tplParser which should return a character vector to replace the text.}
+	}
+
+	NOTE: brew calls can be nested and rely on placing a function named '.brew.cat' in the environment in which it is passed. Each time brew is called, a check for the existence of this function is made. If it exists, then it is replaced with a new copy that is lexically scoped to the current brew frame. Once the brew call is done, the function is replaced with the previous function. The function is finally removed from the environment once all brew calls return.
+
 }
 \value{
-	When \code{run=TRUE}, the result of the last evaluated expression after brewing the input.
+	When \code{run=TRUE}, the value of the last expression after brewing the input or an object of class 'try-error' containing the error message if brewing failed.
 
     When \code{run=FALSE} and \code{parseCode=TRUE}, a list containing the text vector and the code vector of parsed expressions after brewing the input.	
 
