@@ -54,10 +54,11 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 		return(invisible(NULL))
 	}
 
-	newline <- FALSE
+	newline <- FALSE # in the context of a "new" line, not the ASCII code
 	state <- BRTEXT
-	buf <- code <- tpl <- character()
-	buflen <- codelen <- 0
+	text <- code <- tpl <- character()
+	textLen <- codeLen <- as.integer(0)
+	textStart <- as.integer(1)
 	line <- ''
 	
 	while(TRUE){
@@ -71,16 +72,14 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 
 			# One-liner
 			if (newline && ('%' == substr(line,1,1))){
-				# build cats
-				for (i in buf){
-					code[codelen+1] <- paste('cat(',deparse(i),')',sep='')
-					codelen <- codelen + 1
+				if (textStart <= textLen){
+					code[codeLen+1] <- paste('.brew.cat(',textStart,',',textLen,')',sep='')
+					codeLen <- codeLen + 1
+					textStart <- textLen + 1
 				}
-				spl <- strsplit(line,"^%",perl=TRUE)[[1]]
-				code[codelen+1] <- substr(line,2,nchar(line))
-				codelen <- codelen + 1
+				code[codeLen+1] <- substr(line,2,nchar(line))
+				codeLen <- codeLen + 1
 				line <- ''
-				buf <- character(); buflen <- 0
 				next
 			}
 
@@ -95,11 +94,11 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 				# so just take off the whole <%% stuff.
 				spl <- strsplit(line,'<%%',fixed=TRUE)[[1]]
 				if (!is.null(tplParser)){
-					buf[buflen+1] <- spl[1]
-					buflen <- buflen + 1
+					text[textLen+1] <- spl[1]
+					textLen <- textLen + 1
 				} else {
-					buf[buflen+1] <- paste(spl[1],'<%',sep='')
-					buflen <- buflen + 1
+					text[textLen+1] <- paste(spl[1],'<%',sep='')
+					textLen <- textLen + 1
 				}
 				line <- paste(spl[-1],collapse='<%%')
 				state <- BRTEMPLATE
@@ -108,25 +107,23 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 				state <- BRCODE
 				delim <- "<%"
 			}
+
 			if (state != BRTEXT){ # something changed
 				spl <- strsplit(line,delim,fixed=TRUE)[[1]]
 				if (nchar(spl[1])) {
-					buf[buflen+1] <- spl[1]
-					buflen <- buflen + 1
+					text[textLen+1] <- spl[1]
+					textLen <- textLen + 1
 				}
 				line <- paste(spl[-1],collapse=delim)
 
-				if (buflen) {
-					# build cats
-					for (i in buf){
-						code[codelen+1] <- paste('cat(',deparse(i),')',sep='')
-						codelen <- codelen + 1
-					}
+				if (textStart <= textLen) {
+					code[codeLen+1] <- paste('.brew.cat(',textStart,',',textLen,')',sep='')
+					codeLen <- codeLen + 1
+					textStart <- textLen + 1
 				}
-				buf <- character(); buflen <- 0
 			} else {
-				buf[buflen+1] <- line
-				buflen <- buflen + 1
+				text[textLen+1] <- line
+				textLen <- textLen + 1
 				line <- ''
 			}
 		} else {
@@ -135,21 +132,17 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 				if (!is.null(tplParser)){
 					tpl[length(tpl)+1] <- spl[1]
 					# call template parser
-					tplBuf <- strsplit(tplParser(tpl,...),'\n',fixed=TRUE)[[1]]
-					tplBufLen <- length(tplBuf)
-					# add back newline on all but last tplBuf element
-					if (tplBufLen > 1){
-						for( i in 1:(tplBufLen-1)){
-							buf[buflen+1] <- paste(tplBuf[i],'\n',sep='')
-							buflen <- buflen + 1
-						}
+					tplBufList <- tplParser(tpl,...)
+					if (length(tplBufList)){
+						textBegin <- textLen + 1;
+						textEnd <- textBegin + length(tplBufList) - 1
+						textLen <- textEnd
+						text[textBegin:textEnd] <- tplBufList
 					}
-					buf[buflen+1] <- tplBuf[tplBufLen]
-					buflen <- buflen + 1
 					tpl <- character()
 				} else {
-					buf[buflen+1] <- paste(spl[1],'%>',sep='')
-					buflen <- buflen + 1
+					text[textLen+1] <- paste(spl[1],'%>',sep='')
+					textLen <- textLen + 1
 				}
 				line <- paste(spl[-1],collapse='%%>')
 				state <- BRTEXT
@@ -166,36 +159,37 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 						line <- substr(line,1,nchar(line)-1)
 						spl[1] <- substr(spl[1],1,n-1)
 					}
-					buf[buflen+1] <- spl[1]
-					buflen <- buflen + 1
+					text[textLen+1] <- spl[1]
+					textLen <- textLen + 1
 				}
+
+				# We've found the end of a brew section, but we only care if the
+				# section is a BRCODE or BRCATCODE. We just implicitly drop BRCOMMENT sections
 				if (state == BRCODE){
-					code[codelen+1] <- paste(buf,collapse='')
-					codelen <- codelen + 1
+					code[codeLen+1] <- paste(text[textStart:textLen],collapse='')
+					codeLen <- codeLen + 1
 				} else if (state == BRCATCODE){
-					code[codelen+1] <- paste('cat(',paste(buf,collapse=''),')',sep='')
-					codelen <- codelen + 1
+					code[codeLen+1] <- paste('cat(',paste(text[textStart:textLen],collapse=''),')',sep='')
+					codeLen <- codeLen + 1
 				}
-				buf <- character(); buflen <- 0
+				textStart <- textLen + 1
 				state <- BRTEXT
 			} else {
 				if (state == BRTEMPLATE && !is.null(tplParser))
 					tpl[length(tpl)+1] <- line
 				else {
-					buf[buflen+1] <- line
-					buflen <- buflen + 1
+					text[textLen+1] <- line
+					textLen <- textLen + 1
 				}
 				line <- ''
 			}
 		}
 	}
 	if (state == BRTEXT){
-		if (buflen) {
-			# build cats
-			for (i in buf){
-				code[codelen+1] <- paste('cat(',deparse(i),')',sep='')
-				codelen <- codelen + 1
-			}
+		if (textStart <= textLen) {
+			code[codeLen+1] <- paste('.brew.cat(',textStart,',',textLen,')',sep='')
+			codeLen <- codeLen + 1
+			textStart <- textLen + 1
 		}
 	} else {
 		warning("Unclosed tag")
@@ -204,22 +198,37 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 	if (closeIcon) close(icon)
 
 	if (run){
+
+		# Only sink if caller passed an argument
 		sunk <- FALSE
-		if (!exists('.brew.output',where=envir) || !is.null(match.call()$output)) {
+		if (!is.null(match.call()$output)) {
 			sunk <- TRUE
-			assign('.brew.output',output,pos=envir)
 			sink(output)
 		}
+
+		# Set up text output closure
+		brew.cat <- function(from,to) cat(text[from:to],sep='',collapse='')
+		.prev.brew.cat <- NULL
+		if (exists('.brew.cat',envir=envir)){
+			.prev.brew.cat <- get('.brew.cat',pos=envir)
+		}
+		assign('.brew.cat',brew.cat, envir=envir)
 
 		ret <- try(eval(parse(text=code),envir=envir))
 
 		# sink() will warn if trying to end the real stdout diversion
 		if (sunk && unclass(output) != 1) sink()
-		if (exists('.brew.output',where=envir)) rm('.brew.output',pos=envir)
+
+		if(!is.null(.prev.brew.cat)){
+			assign('.brew.cat',.prev.brew.cat,envir=envir)
+		} else {
+			rm('.brew.cat',envir=envir)
+		}
+
 		invisible(ret)
 	} else if (parseCode){
-		invisible(parse(text=code))
+		invisible(list(text=text,code=parse(text=code)))
 	} else {
-		invisible(code)
+		invisible(list(text=text,code=code))
 	}
 }

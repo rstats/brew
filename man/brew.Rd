@@ -23,9 +23,9 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseC
     just parse it (\code{run=FALSE}). Useful for debugging.}
   \item{parseCode}{Logical. only relevant when run=FALSE. When TRUE the brewed code is parsed and then silently returned. When FALSE, the brewed code is returned as a character vector.}
   \item{tplParser}{a function to parse the text between <\%\% and \%\%> and return the result as
-    a character vector of length 1. The template text is passed to the function as a variable
+    a character vector. The template text is passed to the function as a variable
     length character vector in the first argument position. Any additional arguments are passed
-	via ... . The template parser must return a character vector of length 1.}
+	via ... .}
   \item{...}{Additional arguments passed to tplParser if not NULL.}
 }
 \details{
@@ -58,14 +58,13 @@ How about generating a template from a template?
 foo is still bar.
 --------------
 }
-
 }
 \value{
 	When \code{run=TRUE}, the result of the last evaluated expression after brewing the input.
 
-    When \code{run=FALSE} and \code{parseCode=TRUE}, the parsed expressions after brewing the input.	
+    When \code{run=FALSE} and \code{parseCode=TRUE}, a list containing the text vector and the code vector of parsed expressions after brewing the input.	
 
-    When \code{run=FALSE} and \code{parseCode=FALSE}, a character vector containing the R expressions after brewing the input.	
+    When \code{run=FALSE} and \code{parseCode=FALSE}, a list containing the text vector and the unparsed code vector.
 }
 \author{ Jeffrey Horner <jeff.horner@vanderbilt.edu> }
 \seealso{ \code{\link{Sweave}} for the original report generator. }
