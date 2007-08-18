@@ -23,11 +23,31 @@ BRCOMMENT <- 3
 BRCATCODE <- 4
 BRTEMPLATE <- 5
 
+.bufLen <- 0
+.cache <- NULL
+
+setBufLen <- function(len=0){
+	unlockBinding('.bufLen',environment(setBufLen))
+	.bufLen <<- len
+	lockBinding('.bufLen',environment(setBufLen))
+	invisible(NULL)
+}
+
+brewCache     <- function(envir=NULL) {
+	if (missing(envir)) return(.cache)
+	unlockBinding('.cache',environment(brewCache))
+	.cache <<- envir
+	lockBinding('.cache',environment(brewCache))
+	invisible(NULL)
+}
+brewCacheOn  <- function() brewCache(new.env(hash=TRUE,parent=globalenv()))
+brewCacheOff <- function() brewCache(NULL)
+
 # text and code should be found by lexical scoping rules
 `.brew.cached` <- function(output=stdout(),envir=parent.frame()){
 	# Only sink if caller passed an argument
 	sunk <- FALSE
-	if (!is.null(match.call()$output)) {
+	if (!missing(output)) {
 		sunk <- TRUE
 		sink(output)
 	}
@@ -55,18 +75,18 @@ BRTEMPLATE <- 5
 }
 
 `brew` <-
-function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL,...){
+function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL){
+
+	file.mtime <- canCache <- isFile <- closeIcon <- FALSE
 
 	# Error check input
-	closeIcon <- FALSE
-	if (is.character(text) && nchar(text[1]) > 0){
-		closeIcon <- TRUE
-		icon <- textConnection(text[1])
+	if (is.character(file) && file.exists(file)){
+		isFile <- closeIcon <- TRUE
 	} else if (inherits(file,'connection') && summary(file)$"can read" == 'yes') {
 		icon <- file
-	} else if (is.character(file) && file.exists(file)){
+	} else if (is.character(text) && nchar(text[1]) > 0){
 		closeIcon <- TRUE
-		icon <- file(file,open="rt")
+		icon <- textConnection(text[1])
 	} else {
 		stop('No valid input')
 		return(invisible(NULL))
@@ -85,9 +105,30 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 		return(invisible(NULL))
 	}
 
+	# Can we use the cache
+	if (!is.null(.cache) && isFile && run && is.null(tplParser)){
+		canCache <- TRUE
+		if (exists(file,.cache)){
+			file.cache <- get(file,.cache)
+			file.mtime <- file.info(file)$mtime
+			if (file.cache$mtime >= file.mtime){
+				brew.cached <- .brew.cached
+				environment(brew.cached) <- file.cache$env
+				if (!missing(output)) {
+					return(brew.cached(output,envir))
+				} else {
+					return(brew.cached(envir=envir))
+				}
+			}
+		}
+	}
+
+	# Not using cache, open input file if needed
+	if (isFile) icon <- file(file,open="rt")
+
 	newline <- FALSE # in the context of a "new" line, not the ASCII code
 	state <- BRTEXT
-	text <- code <- tpl <- character()
+	text <- code <- tpl <- character(.bufLen)
 	textLen <- codeLen <- as.integer(0)
 	textStart <- as.integer(1)
 	line <- ''
@@ -163,7 +204,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 				if (!is.null(tplParser)){
 					tpl[length(tpl)+1] <- spl[1]
 					# call template parser
-					tplBufList <- tplParser(tpl,...)
+					tplBufList <- tplParser(tpl)
 					if (length(tplBufList)){
 						textBegin <- textLen + 1;
 						textEnd <- textBegin + length(tplBufList) - 1
@@ -230,37 +271,26 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 
 	if (run){
 
-		# Only sink if caller passed an argument
-		sunk <- FALSE
-		if (!is.null(match.call()$output)) {
-			sunk <- TRUE
-			sink(output)
+		brew.env <- new.env(parent=globalenv())
+		assign('text',text,brew.env)
+		assign('code',parse(text=code,srcfile=NULL),brew.env)
+		brew.cached <- .brew.cached
+		environment(brew.cached) <- brew.env
+
+		if (canCache){
+			if (file.mtime == FALSE) file.mtime <- file.info(file)$mtime
+			assign(file,list(mtime=file.mtime,env=brew.env),.cache)
 		}
 
-		# Set up text output closure
-		brew.cat <- function(from,to) cat(text[from:to],sep='',collapse='')
-		.prev.brew.cat <- NULL
-		if (exists('.brew.cat',envir=envir)){
-			.prev.brew.cat <- get('.brew.cat',pos=envir)
-		}
-		assign('.brew.cat',brew.cat, envir=envir)
-
-		ret <- try(eval(parse(text=code),envir=envir))
-
-		# sink() will warn if trying to end the real stdout diversion
-		if (sunk && unclass(output) != 1) sink()
-
-		if(!is.null(.prev.brew.cat)){
-			assign('.brew.cat',.prev.brew.cat,envir=envir)
+		if (!missing(output)) {
+			return(brew.cached(output,envir))
 		} else {
-			rm('.brew.cat',envir=envir)
+			return(brew.cached(envir=envir))
 		}
-
-		invisible(ret)
 	} else if (parseCode){
 		brew.env <- new.env(parent=globalenv())
 		assign('text',text,brew.env)
-		assign('code',parse(text=code),brew.env)
+		assign('code',parse(text=code,srcfile=NULL),brew.env)
 		brew.cached <- .brew.cached
 		environment(brew.cached) <- brew.env
 		invisible(brew.cached)

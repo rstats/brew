@@ -6,7 +6,7 @@
   Java Server Pages, Ruby's erb module, and Python's psp module.
 }
 \usage{
-brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL,...)
+brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL)
 }
 \arguments{
   \item{file}{A connection, or a character string naming the file
@@ -24,9 +24,7 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseC
   \item{parseCode}{Logical. only relevant when run=FALSE. When TRUE the brewed code is parsed and then silently returned. When FALSE, the brewed code is returned as a character vector.}
   \item{tplParser}{a function to parse the text between '<\%\%' and '\%\%>' and return the result as
     a character vector. The template text is passed to the function as a variable
-    length character vector in the first argument position. Any additional arguments are passed
-	via ... .}
-  \item{...}{Additional arguments passed to tplParser if not NULL.}
+    length character vector in the first argument position.}
 }
 \details{
 	brew syntax is quite simple and there are very few delimiters to learn:
@@ -103,7 +101,7 @@ rm(iris)
 ## The example from the Details section
 brew(system.file("featurefull.brew",package="brew"),envir=new.env())
 
-tParse <- function(text,extra='arg') paste('Got this: <',text,'>\n',sep='',collapse='')
-brew(system.file("featurefull.brew",package="brew"),envir=new.env(),tplParser=tParse,extra='stuff')
+tParse <- function(text) paste('Got this: <',text,'>\n',sep='',collapse='')
+brew(system.file("featurefull.brew",package="brew"),envir=new.env(),tplParser=tParse)
 }
 \keyword{utilities}
