@@ -6,7 +6,8 @@
   Java Server Pages, Ruby's erb module, and Python's psp module.
 }
 \usage{
-brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL)
+brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),
+     run=TRUE,parseCode=TRUE,tplParser=NULL)
 }
 \arguments{
   \item{file}{A connection, or a character string naming the file
