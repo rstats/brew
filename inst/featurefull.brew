@@ -4,7 +4,6 @@ Now foo is <%=foo%> and today is <%=format(Sys.time(),'%B %d, %Y')%>.
     Also notice the dash-percent-gt.
     It chops off the trailing newline. 
     You can add it to any percent-gt. -%>
-% cat("and R one-liner\n")
 How about generating a template from a template?
 <%% 
 	foo <- 'fee fi fo fum' 

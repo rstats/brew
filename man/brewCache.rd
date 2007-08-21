@@ -22,7 +22,7 @@ setBufLen(len=0)
 }
 \details{
 
-	brew can cache templates for potential speedup but only when brew
+	brew can cache parsed templates for potential speedup but only when brew
 	calls are passed filenames, not connections, and when tplParser
 	is NULL.
 
@@ -47,7 +47,7 @@ setBufLen(len=0)
 	act as separate keys, although on-disk they may actually point
 	to the same file.
 
-	\code{setBufLen()} initializes internal parsing buffers to length \code{len}. Default is 0.
+	\code{setBufLen()} initializes internal parsing vectors to length \code{len}. Default is 0.
 }
 \value{
 	\code{brewCache()} without arguments returns the internal cache. All others invisibly return \code{NULL}.

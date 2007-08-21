@@ -126,7 +126,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 	# Not using cache, open input file if needed
 	if (isFile) icon <- file(file,open="rt")
 
-	newline <- FALSE # in the context of a "new" line, not the ASCII code
+	# newline <- FALSE # in the context of a "new" line, not the ASCII code
 	state <- BRTEXT
 	text <- code <- tpl <- character(.bufLen)
 	textLen <- codeLen <- as.integer(0)
@@ -138,22 +138,22 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 			line <- readLines(icon,1)
 		   	if (length(line) != 1) break
 			line <- paste(line,"\n",sep='')
-			newline <- TRUE
-		} else newline <- FALSE
+			# newline <- TRUE
+		} # else newline <- FALSE
 		if (state == BRTEXT){
 
 			# One-liner
-			if (newline && ('%' == substr(line,1,1))){
-				if (textStart <= textLen){
-					code[codeLen+1] <- paste('.brew.cat(',textStart,',',textLen,')',sep='')
-					codeLen <- codeLen + 1
-					textStart <- textLen + 1
-				}
-				code[codeLen+1] <- substr(line,2,nchar(line))
-				codeLen <- codeLen + 1
-				line <- ''
-				next
-			}
+			#if (newline && ('%' == substr(line,1,1))){
+			#	if (textStart <= textLen){
+			#		code[codeLen+1] <- paste('.brew.cat(',textStart,',',textLen,')',sep='')
+			#		codeLen <- codeLen + 1
+			#		textStart <- textLen + 1
+			#	}
+			#	code[codeLen+1] <- substr(line,2,nchar(line))
+			#	codeLen <- codeLen + 1
+			#	line <- ''
+			#	next
+			#}
 
 			if (regexpr("<%=",line,perl=TRUE) > 0){
 				state <- BRCATCODE

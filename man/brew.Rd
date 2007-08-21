@@ -36,8 +36,6 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),
     \item{3.}{The value of the R expression between the '<\%=' and '\%>' delimiters is printed.}
 	\item{4.}{All text between the '<\%\#' and '\%>' delimiters is thrown away. Use it as a comment.}
 	\item{5.}{If you place a '-' just before the '\%>' delimiter, and it's placed at the end of a line, then the newline is omitted from the output.}
-	\item{6.}{If '\%' is the first character on the line, then the rest of the line is presumed
-       to be R expressions and are evaluated in place.}
 	}
 
     
@@ -51,7 +49,6 @@ Now foo is <\%=foo\%> and today is <\%=format(Sys.time(),'\%B \%d, \%Y')\%>.
     Also notice the dash-percent-gt.
     It chops off the trailing newline. 
     You can add it to any percent-gt. -\%>
-\% cat("and R one-liner\n")
 How about generating a template from a template?
 <\%\% foo <- 'fee fi fo fum' \%\%>
 foo is still <\%=foo\%>.
@@ -64,7 +61,6 @@ foo is still <\%=foo\%>.
 --------------
 You won't see this R output, but it will run.
 Now foo is bar and today is April 20, 2007.
-and R one-liner
 How about generating a template from a template?
 <\% foo <- 'fee fi fo fum' \%>
 foo is still bar.
@@ -74,7 +70,7 @@ foo is still bar.
 	Also, for power users, there's one more thing:
 
 	\itemize{
-	\item{7.}{Text between the '<\%\%' and '\%\%>' delimiters is treated as a brew template and
+	\item{6.}{Text between the '<\%\%' and '\%\%>' delimiters is treated as a brew template and
       is printed as-is, but the delimiters are changed to '<\%' and '\%>'. This happens when tplParser=NULL. But if tplParser is a valid function, then the text is passed to tplParser which should return a character vector to replace the text.}
 	}
 
@@ -91,6 +87,13 @@ foo is still bar.
 \author{ Jeffrey Horner <jeff.horner@vanderbilt.edu> }
 \seealso{ \code{\link{Sweave}} for the original report generator. }
 \examples{
+
+## A port of the Sweave test file.
+brew(system.file("brew-test-1.brew",package="brew"),"brew-test-1.tex",envir=new.env())
+
+## Everything you wanted to know about your R session.
+brew(system.file("brew-test-2.brew",package="brew"),"brew-test-2.html",envir=new.env())
+browseURL(paste('file://',file.path(getwd(),'brew-test-2.html'),sep=''))
 
 ## Don't sully up environment, so use envir=new.env(). Nested brew calls will still work.
 brew(system.file("example1.brew",package="brew"),envir=new.env())
