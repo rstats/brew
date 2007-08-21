@@ -88,11 +88,11 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 	# Error check input
 	if (is.character(file) && file.exists(file)){
 		isFile <- closeIcon <- TRUE
-	} else if (inherits(file,'connection') && summary(file)$"can read" == 'yes') {
-		icon <- file
 	} else if (is.character(text) && nchar(text[1]) > 0){
 		closeIcon <- TRUE
 		icon <- textConnection(text[1])
+	} else if (inherits(file,'connection') && summary(file)$"can read" == 'yes') {
+		icon <- file
 	} else {
 		stop('No valid input')
 		return(invisible(NULL))
@@ -192,6 +192,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 		} else {
 			if (regexpr("%%>",line,perl=TRUE) > 0){
 				if (state != BRTEMPLATE)
+					stop("Oops! Someone forgot to close a tag. We saw: ",DELIM[[state]][1],' and we need ',DELIM[[state]][2])
 				spl <- strsplit(line,"%%>",fixed=TRUE)[[1]]
 				if (!is.null(tplParser)){
 					tpl[length(tpl)+1] <- spl[1]
