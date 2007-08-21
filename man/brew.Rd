@@ -80,7 +80,7 @@ foo is still bar.
 \value{
 	When \code{run=TRUE}, the value of the last expression after brewing the input or an object of class 'try-error' containing the error message if brewing failed.
 
-    When \code{run=FALSE} and \code{parseCode=TRUE}, a list containing the text vector and the code vector of parsed expressions after brewing the input.	
+    When \code{run=FALSE} and \code{parseCode=TRUE}, a function whose environment contains the text vector and the code vector of the parsed expressions after brewing the input. It takes brew's output and envir arguments.
 
     When \code{run=FALSE} and \code{parseCode=FALSE}, a list containing the text vector and the unparsed code vector.
 }
