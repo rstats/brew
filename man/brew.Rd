@@ -22,7 +22,7 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),
     nested \code{brew} calls.}
   \item{run}{Logical to determine if \code{brew} should evaluate the input (\code{run=TRUE}) or 
     just parse it (\code{run=FALSE}). Useful for debugging.}
-  \item{parseCode}{Logical. only relevant when run=FALSE. When TRUE the brewed code is parsed and then silently returned. When FALSE, the brewed code is returned as a character vector.}
+  \item{parseCode}{Logical. only relevant when run=FALSE. When TRUE the brewed code is parsed and then silently returned. When FALSE, the brewed code is returned as a list. See the Value section for details.}
   \item{tplParser}{a function to parse the text between '<\%\%' and '\%\%>' and return the result as
     a character vector. The template text is passed to the function as a variable
     length character vector in the first argument position.}
