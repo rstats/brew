@@ -32,6 +32,9 @@ DELIM[[BRTEMPLATE]] <- c('<%%','%%>')
 .bufLen <- 0
 .cache <- NULL
 
+# Experimental function for setting the size of internal buffers.
+# There's anecdotal evidence that suggests larger buffer sizes
+# means faster parsing. 
 setBufLen <- function(len=0){
 	unlockBinding('.bufLen',environment(setBufLen))
 	.bufLen <<- len
@@ -146,38 +149,35 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 		}
 		if (state == BRTEXT){
 
-			if (regexpr("<%=",line,perl=TRUE) > 0){
-				state <- BRCATCODE
-				delim <- "<%="
-			} else if (regexpr("<%#",line,perl=TRUE) > 0){
-				state <- BRCOMMENT
-				delim <- "<%#"
-			} else if (regexpr('<%%',line,perl=TRUE) > 0){
-				# Template generator, strip a % unless tplParser != NULL
-				# so just take off the whole <%% stuff.
-				spl <- strsplit(line,'<%%',fixed=TRUE)[[1]]
-				if (!is.null(tplParser)){
-					text[textLen+1] <- spl[1]
-					textLen <- textLen + 1
-				} else {
-					text[textLen+1] <- paste(spl[1],'<%',sep='')
-					textLen <- textLen + 1
-				}
-				line <- paste(spl[-1],collapse='<%%')
-				state <- BRTEMPLATE
-				next
-			} else if (regexpr("<%",line,perl=TRUE) > 0){
-				state <- BRCODE
-				delim <- "<%"
-			}
+			spl <- strsplit(line,DELIM[[BRCODE]],fixed=TRUE)[[1]]
 
-			if (state != BRTEXT){ # something changed
-				spl <- strsplit(line,delim,fixed=TRUE)[[1]]
+			# Beginning markup found
+			if (length(spl) > 1){
+
 				if (nchar(spl[1])) {
 					text[textLen+1] <- spl[1]
 					textLen <- textLen + 1
 				}
-				line <- paste(spl[-1],collapse=delim)
+				line <- paste(spl[-1],collapse='<%')
+
+				# We know we've found this so far, so go ahead and set up state.
+				state <- BRCODE
+
+				# Now let's search for additional markup.
+				if (regexpr('^=',spl[2]) > 0){
+					state <- BRCATCODE
+					line <- sub('^=','',line)
+				} else if (regexpr('^#',spl[2]) > 0){
+					state <- BRCOMMENT
+				} else if (regexpr('^%',spl[2]) > 0){
+					if (is.null(tplParser)){
+						text[textLen+1] <- '<%'
+						textLen <- textLen + 1
+					}
+					line <- sub('^%','',line)
+					state <- BRTEMPLATE
+					next
+				}
 
 				if (textStart <= textLen) {
 					code[codeLen+1] <- paste('.brew.cat(',textStart,',',textLen,')',sep='')
