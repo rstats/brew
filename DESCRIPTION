@@ -7,4 +7,4 @@ Author: Jeffrey Horner
 Maintainer: Jeffrey Horner <jeff.horner@vanderbilt.edu>
 Description: brew implements a templating framework for mixing text and R code for report generation. 
 	brew template syntax is similar to PHP, Ruby's erb module, Java Server Pages, and Python's psp module.
-License: GPL 2.0
+License: GPL-2
