@@ -36,23 +36,18 @@ DELIM[[BRTEMPLATE]] <- c('<%%','%%>')
 # There's anecdotal evidence that suggests larger buffer sizes
 # means faster parsing. 
 setBufLen <- function(len=0){
-	unlockBinding('.bufLen',environment(setBufLen))
 	.bufLen <<- len
-	lockBinding('.bufLen',environment(setBufLen))
 	invisible(NULL)
 }
 
 brewCache     <- function(envir=NULL) {
 	if (missing(envir)) return(.cache)
-	unlockBinding('.cache',environment(brewCache))
 	.cache <<- envir
-	lockBinding('.cache',environment(brewCache))
 	invisible(NULL)
 }
 brewCacheOn  <- function() brewCache(new.env(hash=TRUE,parent=globalenv()))
 brewCacheOff <- function() brewCache(NULL)
 
-# text and code should be found by lexical scoping rules
 `.brew.cached` <- function(output=stdout(),envir=parent.frame()){
 	# Only sink if caller passed an argument
 	sunk <- FALSE
@@ -61,7 +56,7 @@ brewCacheOff <- function() brewCache(NULL)
 		sink(output)
 	}
 
-	# Set up text output closure
+	text <- get('text')
 	brew.cat <- function(from,to) cat(text[from:to],sep='',collapse='')
 	.prev.brew.cat <- NULL
 	if (exists('.brew.cat',envir=envir)){
@@ -69,6 +64,7 @@ brewCacheOff <- function() brewCache(NULL)
 	}
 	assign('.brew.cat',brew.cat, envir=envir)
 
+	code <- get('code')
 	ret <- try(eval(code,envir=envir))
 
 	# sink() will warn if trying to end the real stdout diversion
@@ -292,4 +288,10 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 	} else {
 		invisible(list(text=text,code=code))
 	}
+}
+
+.onAttach <- function(library, pkg)
+{
+	unlockBinding('.bufLen',asNamespace('brew'))
+	unlockBinding('.cache',asNamespace('brew'))
 }
