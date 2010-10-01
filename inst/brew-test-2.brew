@@ -1,14 +1,17 @@
 <% 
 hrefify <- function(title) gsub('[\\.()]','_',title,perl=TRUE)
-scrub <- function(str){ 
-	if (is.null(str)) return('NULL')
-	if (length(str) == 0) return ('length 0 string')
-	str <- as.character(str)
-	str <- gsub('&','&amp;',str); str <- gsub('@','_at_',str); 
-	str <- gsub('<','&lt;',str); str <- gsub('>','&gt;',str); 
-	if (length(str) == 0 || is.null(str) || str == '')
-		str <- '&nbsp;' 
-	str
+scrub <- function(obj){ 
+	if (is.null(obj)) return('NULL')
+	if (length(obj) == 0) return ('length 0 objing')
+	if (typeof(obj) == 'closure')
+		obj <- paste(deparse(obj),collapse='\n')
+	else 
+		obj <- as.character(obj)
+	obj <- gsub('&','&amp;',obj); obj <- gsub('@','_at_',obj); 
+	obj <- gsub('<','&lt;',obj); obj <- gsub('>','&gt;',obj); 
+	if (length(obj) == 0 || is.null(obj) || obj == '')
+		obj <- '&nbsp;' 
+	obj
 }
 cl<-'e' 
 zebelem <- function(n,v) {

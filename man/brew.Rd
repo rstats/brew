@@ -7,7 +7,7 @@
 }
 \usage{
 brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),
-     run=TRUE,parseCode=TRUE,tplParser=NULL)
+     run=TRUE,parseCode=TRUE,tplParser=NULL,chdir=FALSE)
 }
 \arguments{
   \item{file}{A connection, or a character string naming the file
@@ -26,6 +26,9 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),
   \item{tplParser}{a function to parse the text between '<\%\%' and '\%\%>' and return the result as
     a character vector. The template text is passed to the function as a variable
     length character vector in the first argument position.}
+  \item{chdir}{logical; if \code{TRUE} and \code{file} is a pathname, the R working
+          directory is temporarily changed to the directory containing
+          \code{file} for evaluating. \code{brew} will also honor the global option \code{brew.chdir}.}
 }
 \details{
 	brew syntax is quite simple and there are very few delimiters to learn:
@@ -37,7 +40,6 @@ brew(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),
 	\item{4.}{All text between the '<\%\#' and '\%>' delimiters is thrown away. Use it as a comment.}
 	\item{5.}{If you place a '-' just before the '\%>' delimiter, and it's placed at the end of a line, then the newline is omitted from the output.}
 	}
-
     
 	The following template contains syntax to exercise all \code{brew} functionality:
 

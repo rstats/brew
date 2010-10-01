@@ -10,3 +10,5 @@ How about generating a template from a template?
 	brew <- 'haha'
 %%>
 foo is still <%=foo%>.
+Contents of current directory:
+<% print(dir()) %>

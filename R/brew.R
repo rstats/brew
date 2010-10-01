@@ -80,13 +80,26 @@ brewCacheOff <- function() brewCache(NULL)
 }
 
 `brew` <-
-function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL){
+function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL,chdir=FALSE){
 
 	file.mtime <- canCache <- isFile <- closeIcon <- FALSE
 
 	# Error check input
 	if (is.character(file) && file.exists(file)){
 		isFile <- closeIcon <- TRUE
+		if (chdir || isTRUE(getOption('brew.chdir'))){
+			isURL <- length(grep("^(ftp|http|file)://", file)) > 0L
+			if(isURL)
+				warning("'chdir = TRUE' makes no sense for a URL")
+			if(!isURL && (path <- dirname(file)) != ".") {
+				owd <- getwd()
+				if(is.null(owd))
+					warning("cannot 'chdir' as current directory is unknown")
+				else on.exit(setwd(owd), add=TRUE)
+				setwd(path)
+			}
+		}
+
 	} else if (is.character(text) && nchar(text[1]) > 0){
 		closeIcon <- TRUE
 		icon <- textConnection(text[1])
