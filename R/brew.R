@@ -83,6 +83,7 @@ brewCacheOff <- function() brewCache(NULL)
 function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,parseCode=TRUE,tplParser=NULL,chdir=FALSE){
 
 	file.mtime <- canCache <- isFile <- closeIcon <- FALSE
+	filekey <- file # we modify file when chdir=TRUE, so keep same cache key
 
 	# Error check input
 	if (is.character(file) && file.exists(file)){
@@ -97,6 +98,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 					warning("cannot 'chdir' as current directory is unknown")
 				else on.exit(setwd(owd), add=TRUE)
 				setwd(path)
+				file <- basename(file)
 			}
 		}
 
@@ -126,8 +128,8 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 	# Can we use the cache
 	if (!is.null(.cache) && isFile && run && is.null(tplParser)){
 		canCache <- TRUE
-		if (exists(file,.cache)){
-			file.cache <- get(file,.cache)
+		if (exists(fileKey,.cache)){
+			file.cache <- get(fileKey,.cache)
 			file.mtime <- file.info(file)$mtime
 			if (file.cache$mtime >= file.mtime){
 				brew.cached <- .brew.cached
@@ -283,7 +285,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 
 		if (canCache){
 			if (file.mtime == FALSE) file.mtime <- file.info(file)$mtime
-			assign(file,list(mtime=file.mtime,env=brew.env),.cache)
+			assign(filekey,list(mtime=file.mtime,env=brew.env),.cache)
 		}
 
 		if (!missing(output)) {
