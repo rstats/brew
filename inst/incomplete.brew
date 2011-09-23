@@ -1,0 +1,11 @@
+Incomplete expression tests
+<% for(i in 1:5) { -%>
+<%= i -%> 
+<% } -%>
+<% if( -%>
+<% i == 5 -%>
+<% ) { -%>
+OK
+<% } else { -%>
+FAIL
+<% } -%>
