@@ -128,8 +128,8 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 	# Can we use the cache
 	if (!is.null(.cache) && isFile && run && is.null(tplParser)){
 		canCache <- TRUE
-		if (exists(fileKey,.cache)){
-			file.cache <- get(fileKey,.cache)
+		if (exists(filekey,.cache)){
+			file.cache <- get(filekey,.cache)
 			file.mtime <- file.info(file)$mtime
 			if (file.cache$mtime >= file.mtime){
 				brew.cached <- .brew.cached
