@@ -89,10 +89,7 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 	if (is.character(file) && file.exists(file)){
 		isFile <- closeIcon <- TRUE
 		if (chdir || isTRUE(getOption('brew.chdir'))){
-			isURL <- length(grep("^(ftp|http|file)://", file)) > 0L
-			if(isURL)
-				warning("'chdir = TRUE' makes no sense for a URL")
-			if(!isURL && (path <- dirname(file)) != ".") {
+			if((path <- dirname(file)) != ".") {
 				owd <- getwd()
 				if(is.null(owd))
 					warning("cannot 'chdir' as current directory is unknown")
@@ -102,6 +99,10 @@ function(file=stdin(),output=stdout(),text=NULL,envir=parent.frame(),run=TRUE,pa
 			}
 		}
 
+	} else if (is.character(file) && grepl("^(ftp|http|file)://", file)) {
+		isFile <- closeIcon <- TRUE
+                if(chdir || isTRUE(getOption('brew.chdir')))
+			warning("'chdir = TRUE' makes no sense for a URL")
 	} else if (is.character(text) && nchar(text[1]) > 0){
 		closeIcon <- TRUE
 		icon <- textConnection(text[1])
