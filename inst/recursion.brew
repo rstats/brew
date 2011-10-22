@@ -1,0 +1,7 @@
+<% if(!exists('depth')) depth <- 0 -%>
+Recursive brew test: depth <%= depth %>
+<%
+    depth <- depth + 1
+    if(depth < 5)
+        brew::brew(system.file('recursion.brew',package='brew'))
+-%>
